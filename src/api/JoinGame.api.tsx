@@ -6,7 +6,11 @@ export type GamesJoinResponse = {
 };
 
 export const joinGame = async (gameId: number): Promise<GamesJoinResponse> => {
-	const response = await axios.post(`/api/game/${gameId}/join`);
+	const response = await axios.post(
+		`/api/game/${gameId}/join`,
+		undefined,
+		{ withCredentials: true }
+	);
 
 	return response.data;
 };

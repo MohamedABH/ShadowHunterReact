@@ -9,7 +9,8 @@ export type RegisterRequestBody = {
 export const registerRequest = async (body: RegisterRequestBody) => {
 	const response = await axios.post(
 		"/api/register",
-		body
+		body,
+		{ withCredentials: true }
 	);
 
 	return response.data;

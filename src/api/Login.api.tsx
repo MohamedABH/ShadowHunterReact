@@ -8,7 +8,8 @@ export type LoginRequestBody = {
 export const loginRequest = async (body: LoginRequestBody) => {
 	const response = await axios.post(
 		"/api/login",
-		body
+		body,
+		{ withCredentials: true }
 	);
 
 	return response.data;

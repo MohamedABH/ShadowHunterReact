@@ -10,7 +10,11 @@ export type GameCreationBody = {
 };
 
 export const createGame = async (body: GameCreationBody): Promise<GameCreationResponse> => {
-	const response = await axios.post(`/api/game/create`, body);
+	const response = await axios.post(
+		`/api/game/create`,
+		body,
+		{ withCredentials: true }
+	);
 
 	return response.data;
 };

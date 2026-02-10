@@ -13,7 +13,9 @@ export type GamesListResponse = {
 };
 
 export const getGamesList = async (): Promise<GamesListResponse> => {
-	const response = await axios.get("/api/game/list");
+	const response = await axios.get("/api/game/list", {
+		withCredentials: true,
+	});
 
 	return response.data;
 };
