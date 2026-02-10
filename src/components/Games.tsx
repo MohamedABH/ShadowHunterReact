@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getGamesList, type GameItem } from "../api/GameList.api";
 import { joinGame } from "../api/JoinGame.api";
 
@@ -59,7 +60,12 @@ const Games: React.FC = () => {
 
   return (
     <section className="games">
-      <h1 className="games__title">Games</h1>
+      <header className="games__header">
+        <h1 className="games__title">Games</h1>
+        <Link className="games__create" to="/games/create">
+          Create a game
+        </Link>
+      </header>
       <table className="games__table">
         <thead>
           <tr>
