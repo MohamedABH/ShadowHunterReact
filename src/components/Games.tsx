@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { getGamesList, type GameItem } from "../api/Games.api";
+import { getGamesList, type GameItem } from "../api/GameList.api";
+import { joinGame } from "../api/JoinGame.api";
 
 const Games: React.FC = () => {
   const [games, setGames] = useState<GameItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [joiningGameId, setJoiningGameId] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -41,6 +43,20 @@ const Games: React.FC = () => {
     return <p>{error}</p>;
   }
 
+  const handleJoin = async (gameId: number) => {
+    setJoiningGameId(gameId);
+    setError(null);
+
+    try {
+      const data = await joinGame(gameId);
+      console.log("Join game response:", data);
+    } catch (err) {
+      setError("Unable to join the game.");
+    } finally {
+      setJoiningGameId(null);
+    }
+  };
+
   return (
     <section className="games">
       <h1 className="games__title">Games</h1>
@@ -51,6 +67,7 @@ const Games: React.FC = () => {
             <th>Name</th>
             <th>Status</th>
             <th>Players</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -60,6 +77,20 @@ const Games: React.FC = () => {
               <td>{game.name}</td>
               <td>{game.status}</td>
               <td>{game.playerCount}</td>
+              <td>
+                {game.status === "pending" ? (
+                  <button
+                    type="button"
+                    className="games__join"
+                    onClick={() => handleJoin(game.id)}
+                    disabled={joiningGameId === game.id}
+                  >
+                    {joiningGameId === game.id ? "Joining..." : "Join"}
+                  </button>
+                ) : (
+                  "—"
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
