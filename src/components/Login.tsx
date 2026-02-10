@@ -15,6 +15,7 @@ const Login: React.FC = () => {
 		try {
 			const data = await loginRequest({ username, password });
 			console.log("Login response:", data);
+			console.log("Document cookies:", document.cookie);
 		} catch (err) {
 			setError("Login failed. Please check your credentials and try again.");
 		} finally {
