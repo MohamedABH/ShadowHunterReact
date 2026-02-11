@@ -10,7 +10,7 @@ const Games: React.FC = () => {
   const [joiningGameId, setJoiningGameId] = useState<number | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    let isMounted: boolean = true;
 
     const loadGames = async () => {
       try {
