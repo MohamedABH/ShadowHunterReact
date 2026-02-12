@@ -27,7 +27,7 @@ const Navbar: React.FC<NavbarProps> = ({ loggedIn, username }) => {
 		<header className="bg-accent text-primary shadow-lg">
 			<nav className="flex items-center px-4 py-4 text-base">
 				{/* Logo/Brand */}
-				<Link to="/" className="shrink-0 text-2xl font-bold text-primary">
+				<Link to="/" className="shrink-0 text-2xl text-primary">
 					Takaro
 				</Link>
 
