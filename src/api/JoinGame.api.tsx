@@ -1,11 +1,7 @@
 import axios from "axios";
+import type { JoinGameResponse } from "../types/joinGame.type";
 
-export type GamesJoinResponse = {
-	message: string;
-	gameId: number;
-};
-
-export const joinGame = async (gameId: number): Promise<GamesJoinResponse> => {
+export const joinGame = async (gameId: number): Promise<JoinGameResponse> => {
 	const response = await axios.post(
 		`/api/game/${gameId}/join`,
 		undefined,

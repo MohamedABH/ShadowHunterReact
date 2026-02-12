@@ -1,10 +1,5 @@
 import axios from "axios";
-
-export type RegisterRequestBody = {
-    email: string;
-	username: string;
-	password: string;
-};
+import type { RegisterRequestBody } from "../types/register.type";
 
 export const registerRequest = async (body: RegisterRequestBody) => {
 	const response = await axios.post(

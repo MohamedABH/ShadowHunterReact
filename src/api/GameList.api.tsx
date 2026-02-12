@@ -1,18 +1,7 @@
 import axios from "axios";
+import type { GameListResponse } from "../types/gameList.type";
 
-export type GameItem = {
-	id: number;
-	name: string;
-	status: string;
-	playerCount: number;
-};
-
-export type GamesListResponse = {
-	games: GameItem[];
-	total: number;
-};
-
-export const getGamesList = async (): Promise<GamesListResponse> => {
+export const getGamesList = async (): Promise<GameListResponse> => {
 	const response = await axios.get("/api/game/list", {
 		withCredentials: true,
 	});

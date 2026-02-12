@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import { getGameState, type GameState } from '../api/GameState.api';
+import { getGameState } from '../api/GameState.api';
+import type { GameState } from '../types/gameState.type';
 
 const MyGame: React.FC = () => {
 

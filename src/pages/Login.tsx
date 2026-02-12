@@ -1,11 +1,15 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { loginRequest } from "../api/Login.api";
+import type { LoginResponseBody } from "../types/login.type";
+import { setLoggedIn, setUsername as setStoredUsername } from "../utils/auth";
 
 const Login: React.FC = () => {
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const navigate = useNavigate();
 
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -13,9 +17,12 @@ const Login: React.FC = () => {
 		setIsSubmitting(true);
 
 		try {
-			const data = await loginRequest({ username, password });
+			const data: LoginResponseBody = await loginRequest({ username, password });
 			console.log("Login response:", data);
 			console.log("Document cookies:", document.cookie);
+			setLoggedIn(true);
+			setStoredUsername(data?.username ?? username);
+			navigate("/games", { replace: true });
 		} catch (err) {
 			setError("Login failed. Please check your credentials and try again.");
 		} finally {

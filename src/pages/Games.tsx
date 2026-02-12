@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getGamesList, type GameItem } from "../api/GameList.api";
+import { getGamesList } from "../api/GameList.api";
+import type { GameItem } from "../types/gameList.type";
 import { joinGame } from "../api/JoinGame.api";
+import GameCard from "../components/GameCard";
 
 const Games: React.FC = () => {
   const [games, setGames] = useState<GameItem[]>([]);
@@ -66,41 +68,16 @@ const Games: React.FC = () => {
           Create a game
         </Link>
       </header>
-      <table className="games__table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Players</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {games.map((game) => (
-            <tr key={game.id}>
-              <td>{game.id}</td>
-              <td>{game.name}</td>
-              <td>{game.status}</td>
-              <td>{game.playerCount}</td>
-              <td>
-                {game.status === "pending" ? (
-                  <button
-                    type="button"
-                    className="games__join"
-                    onClick={() => handleJoin(game.id)}
-                    disabled={joiningGameId === game.id}
-                  >
-                    {joiningGameId === game.id ? "Joining..." : "Join"}
-                  </button>
-                ) : (
-                  "—"
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="games__list">
+        {games.map((game) => (
+          <GameCard
+            key={game.id}
+            game={game}
+            isJoining={joiningGameId === game.id}
+            onJoin={handleJoin}
+          />
+        ))}
+      </div>
     </section>
   );
 };

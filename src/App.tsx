@@ -1,31 +1,37 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import Login from './components/Login'
-import Register from './components/Register'
-import Games from './components/Games'
-import GameCreation from './components/GameCreation'
-import MyGame from './components/MyGame'
+import { BrowserRouter } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import Navbar from './components/Navbar'
+import AppRoutes from './routes/AppRoutes'
+import { getUsername, isLoggedIn } from './utils/auth'
 
 export default function App() {
+  const [loggedIn, setLoggedIn] = useState(() => isLoggedIn())
+  const [username, setUsername] = useState(() => getUsername())
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setLoggedIn(isLoggedIn())
+      setUsername(getUsername())
+    }
+
+    window.addEventListener('auth-changed', handleAuthChange)
+    window.addEventListener('storage', handleAuthChange)
+
+    return () => {
+      window.removeEventListener('auth-changed', handleAuthChange)
+      window.removeEventListener('storage', handleAuthChange)
+    }
+  }, [])
+
   return (
     <BrowserRouter>
-      <header>
-        <nav>
-          <Link to="/login">Connexion</Link> |{' '}
-          <Link to="/register">Inscription</Link> |{' '}
-          <Link to="/games">Parties</Link> |{' '}
-          <Link to="/myGame">Ma partie</Link>
-        </nav>
-      </header>
+      <div className="min-h-screen bg-secondary text-space_indigo">
+        <Navbar loggedIn={loggedIn} username={username} />
 
-      <main>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/games" element={<Games />} />
-          <Route path="/games/create" element={<GameCreation />} />
-          <Route path="/myGame" element={<MyGame />} />
-        </Routes>
-      </main>
+        <main className="mx-auto w-full max-w-5xl px-4 py-6">
+          <AppRoutes loggedIn={loggedIn} />
+        </main>
+      </div>
     </BrowserRouter>
   )
 }

@@ -1,11 +1,9 @@
 import axios from "axios";
+import type { LoginRequestBody, LoginResponseBody } from "../types/login.type";
 
-export type LoginRequestBody = {
-	username: string;
-	password: string;
-};
-
-export const loginRequest = async (body: LoginRequestBody) => {
+export const loginRequest = async (
+	body: LoginRequestBody
+): Promise<LoginResponseBody> => {
 	const response = await axios.post(
 		"/api/login",
 		body,
