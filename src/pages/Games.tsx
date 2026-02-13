@@ -61,7 +61,7 @@ const Games: React.FC = () => {
   };
 
   return (
-    <section className="games">
+    <section className="games text-parchment-900">
       <header className="games__header">
         <h1 className="games__title">Games</h1>
         <Link className="games__create" to="/games/create">

@@ -23,7 +23,7 @@ const GameCreation: React.FC = () => {
   };
 
   return (
-    <section className="game-creation">
+    <section className="game-creation text-parchment-900">
       <h1 className="game-creation__title">Create Game</h1>
       <form className="game-creation__form" onSubmit={handleSubmit}>
         <label className="game-creation__label" htmlFor="game-name">

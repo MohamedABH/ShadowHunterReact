@@ -37,7 +37,7 @@ const MyGame: React.FC = () => {
     }, []);
 
     return (
-        <div>
+        <div className="text-parchment-900">
             {isLoading && <p>Loading game state...</p>}
             {error && <p>{error}</p>}
             {!isLoading && !error && state && (

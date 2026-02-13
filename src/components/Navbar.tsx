@@ -14,7 +14,7 @@ type NavLinkItemProps = {
 const NavLinkItem: React.FC<NavLinkItemProps> = ({ to, children }) => {
 	return (
 		<Link
-			className="px-3 py-2 text-primary transition hover:bg-lilac_ash-400"
+			className="px-3 py-2 text-space_indigo-100 transition hover:bg-lilac_ash-400"
 			to={to}
 		>
 			{children}
@@ -27,7 +27,7 @@ const Navbar: React.FC<NavbarProps> = ({ loggedIn, username }) => {
 		<header className="bg-accent text-primary shadow-lg">
 			<nav className="flex items-center px-4 py-4 text-base">
 				{/* Logo/Brand */}
-				<Link to="/" className="shrink-0 text-2xl text-primary">
+				<Link to="/" className="shrink-0 text-2xl text-space_indigo-100">
 					Takaro
 				</Link>
 
