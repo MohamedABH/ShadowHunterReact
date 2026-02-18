@@ -1,12 +1,28 @@
 import React, { useEffect } from 'react'
+import axios from 'axios';
 import { getGameState } from '../api/GameState.api';
 import type { GameState } from '../types/gameState.type';
+import { getUsername } from '../utils/auth';
+
+type TurnPlayedUpdate = {
+  type: 'turn_played';
+  gameId: number;
+  playerId: number;
+  roll: string;
+  position: {
+    id: number;
+    number: number;
+  };
+  turn: number;
+  nextPlayerId: number | null;
+};
 
 const MyGame: React.FC = () => {
 
     const [state, setState] = React.useState<GameState | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
+    const [isPlayingTurn, setIsPlayingTurn] = React.useState(false);
 
     useEffect(() => {
         let isMounted: boolean = true;
@@ -15,8 +31,18 @@ const MyGame: React.FC = () => {
           try {
             const data = await getGameState();
             if (isMounted) {
-              setState(data);
-              console.log("Game state response:", data);
+              // Normalize positions to numbers if they come as objects
+              const normalizedData = {
+                ...data,
+                players: data.players.map(player => ({
+                  ...player,
+                  position: typeof player.position === 'object' && player.position !== null
+                    ? (player.position as any).number
+                    : player.position
+                }))
+              };
+              setState(normalizedData);
+              console.log("Game state response:", normalizedData);
             }
           } catch (err) {
             if (isMounted) {
@@ -35,6 +61,90 @@ const MyGame: React.FC = () => {
           isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+      if (!state?.gameId) {
+        return;
+      }
+
+      const hubUrl = new URL("/.well-known/mercure", window.location.origin);
+      hubUrl.searchParams.append("topic", `game/${state.gameId}`);
+
+      const source = new EventSource(hubUrl.toString(), { withCredentials: true });
+
+      source.onmessage = (event) => {
+        try {
+          const payload: TurnPlayedUpdate = JSON.parse(event.data);
+          if (payload.type !== 'turn_played') {
+            return;
+          }
+
+          setState((prev) => {
+            if (!prev || prev.gameId !== payload.gameId) {
+              return prev;
+            }
+
+            const updatedPlayers = prev.players.map((player) =>
+              player.id === payload.playerId
+                ? { ...player, position: payload.position.number }
+                : player
+            );
+
+            const positionIndex = prev.positions.findIndex(
+              (position) => position.id === payload.position.id
+            );
+
+            const updatedPositions = positionIndex === -1
+              ? [
+                ...prev.positions,
+                { id: payload.position.id, number: payload.position.number, placeCard: null },
+              ]
+              : prev.positions.map((position) =>
+                position.id === payload.position.id
+                  ? { ...position, number: payload.position.number }
+                  : position
+              );
+
+            return {
+              ...prev,
+              turn: payload.turn,
+              currentPlayerId: payload.nextPlayerId ?? prev.currentPlayerId,
+              players: updatedPlayers,
+              positions: updatedPositions,
+            };
+          });
+        } catch (err) {
+          console.error("Unable to parse Mercure update", err);
+        }
+      };
+
+      return () => {
+        source.close();
+      };
+    }, [state?.gameId]);
+
+    const currentUsername = getUsername();
+    const currentPlayer = state?.players.find((player) => player.username === currentUsername) ?? null;
+    const isCurrentTurnPlayer = Boolean(
+      state && currentPlayer && state.currentPlayerId === currentPlayer.id
+    );
+
+    const handlePlayTurn = async () => {
+      if (!state) {
+        return;
+      }
+
+      setIsPlayingTurn(true);
+      setError(null);
+
+      try {
+        await axios.post(`api/game/${state.gameId}/turn/play`, null, { withCredentials: true });
+      } catch (err) {
+        setError("Unable to play the turn.");
+      } finally {
+        setIsPlayingTurn(false);
+      }
+    };
 
     return (
         <div className="text-parchment-900">
@@ -58,6 +168,19 @@ const MyGame: React.FC = () => {
                       <td>{state.turn}</td>
                       <td>{state.currentPlayerId}</td>
                     </tr>
+                    {isCurrentTurnPlayer && (
+                      <tr>
+                        <td colSpan={4}>
+                          <button
+                            type="button"
+                            onClick={handlePlayTurn}
+                            disabled={isPlayingTurn}
+                          >
+                            {isPlayingTurn ? "Playing turn..." : "Play turn"}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
                     <tr>
                       <td colSpan={4}>
                         <div>
