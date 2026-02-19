@@ -73,8 +73,10 @@ const MyGame: React.FC = () => {
       const source = new EventSource(hubUrl.toString(), { withCredentials: true });
 
       source.onmessage = (event) => {
+        console.log("Mercure message received:", event.data);
         try {
           const payload: TurnPlayedUpdate = JSON.parse(event.data);
+          console.log("Mercure payload parsed:", payload);
           if (payload.type !== 'turn_played') {
             return;
           }
@@ -231,24 +233,37 @@ const MyGame: React.FC = () => {
                           {state.positions.length === 0 ? (
                             <p>—</p>
                           ) : (
-                            <table>
-                              <thead>
-                                <tr>
-                                  <th>ID</th>
-                                  <th>Number</th>
-                                  <th>Place Card</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {state.positions.map((position) => (
-                                  <tr key={position.id}>
-                                    <td>{position.id}</td>
-                                    <td>{position.number}</td>
-                                    <td>{position.placeCard?.name ?? "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                            <div className="grid gap-4">
+                              {state.positions.map((position) => {
+                                const playersOnPosition = state.players.filter(
+                                  (player) => player.position === position.number
+                                );
+
+                                return (
+                                  <article key={position.id} className="rounded border p-4">
+                                    <h4>Position {position.number}</h4>
+                                    <p>ID: {position.id}</p>
+                                    <p>Place Card: {position.placeCard?.name ?? "—"}</p>
+                                    <p>Roll: {position.placeCard?.roll ?? "—"}</p>
+
+                                    <div>
+                                      <strong>Players here</strong>
+                                      {playersOnPosition.length === 0 ? (
+                                        <p>—</p>
+                                      ) : (
+                                        <ul>
+                                          {playersOnPosition.map((player) => (
+                                            <li key={player.id}>
+                                              {player.username} (ID: {player.id}, Color: {player.color})
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  </article>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
                       </td>
