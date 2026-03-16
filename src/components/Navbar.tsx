@@ -35,6 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ loggedIn, username }) => {
 				<div className="flex gap-2 px-8">
 					<NavLinkItem to="/games">Parties</NavLinkItem>
 					<NavLinkItem to="/myGame">Ma partie</NavLinkItem>
+					<NavLinkItem to="/board">Board</NavLinkItem>
 				</div>
 
 				{/* Auth Links (Right) */}

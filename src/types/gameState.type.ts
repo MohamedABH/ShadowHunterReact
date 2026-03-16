@@ -2,6 +2,8 @@ export type GameState = {
 	gameId: number;
 	gameStatus: string;
 	turn: number;
+	turnPhase?: string;
+	currentTurnRoll?: number;
 	currentPlayerId: number;
 	positions: Position[];
 	players: Player[];
