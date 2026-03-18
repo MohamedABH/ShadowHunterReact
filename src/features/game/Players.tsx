@@ -1,4 +1,4 @@
-import PlayerCard from "./PlayerCard"
+import PlayerCard from './PlayerCard';
 import type { Player } from '../../types/gameState.type';
 
 type PlayersProps = {

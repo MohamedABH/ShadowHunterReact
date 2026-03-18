@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
 import { getGameState } from '../api/GameState.api';
-import Board from "../components/game/Board"
-import Chat from "../components/game/Chat"
-import Players from "../components/game/Players"
-import { useGameMercure } from '../hooks/useGameMercure';
-import { normalizeGameState } from '../services/gameState.service';
+import { Board } from '../features/board';
+import { Chat } from '../features/chat';
+import { Players, useGameMercure, normalizeGameState } from '../features/game';
 import type { GameState } from '../types/gameState.type';
 
 const BoardPage = () => {

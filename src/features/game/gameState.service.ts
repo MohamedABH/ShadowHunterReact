@@ -1,4 +1,4 @@
-import type { GameState, Position } from '../types/gameState.type';
+import type { GameState, Position } from '../../types/gameState.type';
 
 export type TurnPlayedUpdate = {
   type: 'turn_played';

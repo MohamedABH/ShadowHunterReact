@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { GameState } from '../types/gameState.type';
+import type { GameState } from '../../types/gameState.type';
 import {
   applyTurnPlayedUpdate,
   parseTurnPlayedUpdate,
-} from '../services/gameState.service';
+} from './gameState.service';
 
 type UseGameMercureParams = {
   gameId?: number;

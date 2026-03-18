@@ -1,28 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
-import type { BoardApi, BoardProps } from '../../types/board.type';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import type { BoardApi } from '../../types/board.type';
+import type { BoardPosition, PlayerPosition } from '../../types/board.type';
 import {
-  PLAYER_COLORS,
   PLAYER_COLOR_INITIALS,
   PLAYER_COLOR_VALUES,
   type PlayerColor,
   isPlayerColor,
 } from '../../types/playerColor.type';
-
-type Point = {
-  x: number;
-  y: number;
-};
-
-type RotatedRectangle = {
-  id: number;
-  centerX: number;
-  centerY: number;
-  shortSide: number;
-  longSide: number;
-  angle: number;
-};
-
-type Triangle = [Point, Point, Point];
+import {
+  BOARD_CANVAS_HEIGHT,
+  BOARD_CANVAS_WIDTH,
+  CIRCLE_RADIUS,
+  MAX_CIRCLES_PER_RECTANGLE,
+  MAX_PLACEMENT_ATTEMPTS,
+  RECT_LONG_SIDE,
+  RECT_PAIR_OFFSET,
+  RECT_SHORT_SIDE,
+  buildMainTriangle,
+  getContrastingTextColor,
+  isPointInsideRotatedRect,
+  randomPointInRectangle,
+  type Point,
+  type RotatedRectangle,
+} from './boardCanvas.utils';
 
 type CircleMarker = {
   x: number;
@@ -32,43 +32,35 @@ type CircleMarker = {
   rectangleId: number;
 };
 
+type UseBoardCanvasParams = {
+  positions: BoardPosition[];
+  playerPositions: PlayerPosition[];
+};
+
+type UseBoardCanvasResult = {
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+  selectedRectangleLabel: number | null;
+  usedColors: PlayerColor[];
+  addCircleToSelectedRectangle: (color: PlayerColor) => boolean;
+  clearCircles: () => void;
+};
+
 declare global {
   interface Window {
     boardApi?: BoardApi;
   }
 }
 
-const getContrastingTextColor = (hexColor: string) => {
-  const sanitized = hexColor.replace('#', '');
-  const red = parseInt(sanitized.slice(0, 2), 16);
-  const green = parseInt(sanitized.slice(2, 4), 16);
-  const blue = parseInt(sanitized.slice(4, 6), 16);
-  const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
-
-  return luminance > 160 ? '#111111' : '#f8fafc';
-};
-
-const Board = ({ positions, playerPositions }: BoardProps) => {
+export const useBoardCanvas = ({
+  positions,
+  playerPositions,
+}: UseBoardCanvasParams): UseBoardCanvasResult => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedRectangleLabel, setSelectedRectangleLabel] = useState<number | null>(null);
-  const [selectedColor, setSelectedColor] = useState<PlayerColor>('red');
   const [usedColors, setUsedColors] = useState<PlayerColor[]>([]);
 
-  const addCircle = () => {
-    const added = window.boardApi?.addCircleToSelectedRectangle(selectedColor);
-    if (!added) {
-      return;
-    }
-
-    const nextAvailableColor = PLAYER_COLORS.find((color) => !usedColors.includes(color));
-    if (nextAvailableColor) {
-      setSelectedColor(nextAvailableColor);
-    }
-  };
-
-  const clearCircles = () => {
-    window.boardApi?.clearCircles();
-  };
+  const addCircleToSelectedRef = useRef<(color: PlayerColor) => boolean>(() => false);
+  const clearCirclesRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,62 +68,22 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       return;
     }
 
-    canvas.width = 800;
-    canvas.height = 600;
+    canvas.width = BOARD_CANVAS_WIDTH;
+    canvas.height = BOARD_CANVAS_HEIGHT;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       return;
     }
 
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-    const topSideLength = 300;
-    const oppositeAngleDeg = 53.13;
-
-    const triangleCenterX = canvas.width / 2;
-    const halfTopSide = topSideLength / 2;
-    const oppositeAngleRad = (oppositeAngleDeg * Math.PI) / 180;
-    const height = halfTopSide / Math.tan(oppositeAngleRad / 2);
-
-    if (!Number.isFinite(height) || height <= 0) {
+    const mainTriangle = buildMainTriangle(canvas.width, canvas.height);
+    if (!mainTriangle) {
       return;
     }
 
-    const canvasCenterY = canvas.height / 2;
-    const triangleTopY = canvasCenterY - height / 3;
-
-    const topLeft = { x: triangleCenterX - halfTopSide, y: triangleTopY };
-    const topRight = { x: triangleCenterX + halfTopSide, y: triangleTopY };
-    const bottom = { x: triangleCenterX, y: triangleTopY + height };
-
-    const mainTriangle: Triangle = [topLeft, topRight, bottom];
     const circles: CircleMarker[] = [];
-    const maxCirclesPerRectangle = 8;
-    const circleRadius = 14;
-    const maxPlacementAttempts = 200;
-
     let rectangles: RotatedRectangle[] = [];
-
     let selectedRectangleId: number | null = null;
-
-    const randomPointInRectangle = (rectangle: RotatedRectangle, radius: number): Point => {
-      const safeHalfWidth = rectangle.shortSide / 2 - radius;
-      const safeHalfHeight = rectangle.longSide / 2 - radius;
-
-      const localX = (Math.random() * 2 - 1) * safeHalfWidth;
-      const localY = (Math.random() * 2 - 1) * safeHalfHeight;
-
-      const cos = Math.cos(rectangle.angle);
-      const sin = Math.sin(rectangle.angle);
-
-      return {
-        x: rectangle.centerX + localX * cos - localY * sin,
-        y: rectangle.centerY + localX * sin + localY * cos,
-      };
-    };
 
     const drawRectPairForSide = (
       a: Point,
@@ -156,9 +108,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       const midX = (a.x + b.x) / 2;
       const midY = (a.y + b.y) / 2;
 
-      const shortSide = 120; // Short side of the rectangles
-      const longSide = Math.floor(shortSide*1.4); // Long side of the rectangles
-      const distance = longSide / 2; // So the short side sits exactly on the triangle side
+      const distance = RECT_LONG_SIDE / 2;
       const centerAX = midX + nxA * distance;
       const centerAY = midY + nyA * distance;
       const centerBX = midX + nxB * distance;
@@ -170,12 +120,10 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       const nx = distA > distB ? nxA : nxB;
       const ny = distA > distB ? nyA : nyB;
 
-      const pairOffset = 10 + Math.floor(shortSide/2); // Distance between the two rectangles in the pair
-
-      const rect1CenterX = midX + nx * distance + tx * pairOffset;
-      const rect1CenterY = midY + ny * distance + ty * pairOffset;
-      const rect2CenterX = midX + nx * distance - tx * pairOffset;
-      const rect2CenterY = midY + ny * distance - ty * pairOffset;
+      const rect1CenterX = midX + nx * distance + tx * RECT_PAIR_OFFSET;
+      const rect1CenterY = midY + ny * distance + ty * RECT_PAIR_OFFSET;
+      const rect2CenterX = midX + nx * distance - tx * RECT_PAIR_OFFSET;
+      const rect2CenterY = midY + ny * distance - ty * RECT_PAIR_OFFSET;
 
       const angle = Math.atan2(ty, tx);
       const drawRotatedRect = (centerX: number, centerY: number) => {
@@ -184,8 +132,8 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
           id: rectangleId,
           centerX,
           centerY,
-          shortSide,
-          longSide,
+          shortSide: RECT_SHORT_SIDE,
+          longSide: RECT_LONG_SIDE,
           angle,
         });
         nextRectangleIdRef.value += 1;
@@ -200,7 +148,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
           ctx.strokeStyle = 'black';
           ctx.lineWidth = 2;
         }
-        ctx.strokeRect(-shortSide / 2, -longSide / 2, shortSide, longSide);
+        ctx.strokeRect(-RECT_SHORT_SIDE / 2, -RECT_LONG_SIDE / 2, RECT_SHORT_SIDE, RECT_LONG_SIDE);
         ctx.restore();
       };
 
@@ -269,17 +217,16 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       }
 
       const currentCount = circles.filter((circle) => circle.rectangleId === rectangleId).length;
-
-      if (currentCount >= maxCirclesPerRectangle) {
+      if (currentCount >= MAX_CIRCLES_PER_RECTANGLE) {
         return false;
       }
 
       let placedPoint: Point | null = null;
-      for (let attempt = 0; attempt < maxPlacementAttempts; attempt += 1) {
-        const candidate = randomPointInRectangle(rectangle, circleRadius);
+      for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt += 1) {
+        const candidate = randomPointInRectangle(rectangle, CIRCLE_RADIUS);
         const overlapsExisting = circles.some((circle) => {
           const distance = Math.hypot(candidate.x - circle.x, candidate.y - circle.y);
-          return distance < circleRadius + circle.radius;
+          return distance < CIRCLE_RADIUS + circle.radius;
         });
 
         if (!overlapsExisting) {
@@ -295,7 +242,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       circles.push({
         x: placedPoint.x,
         y: placedPoint.y,
-        radius: circleRadius,
+        radius: CIRCLE_RADIUS,
         color: normalizedColor,
         rectangleId,
       });
@@ -334,35 +281,6 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       }
     };
 
-    window.boardApi = {
-      addCircleToRectangle,
-      addCircleToSelectedRectangle,
-      clearCircles,
-    };
-
-    drawScene();
-    autoPopulateCirclesFromPlayers();
-
-    const isPointInsideRotatedRect = (
-      pointX: number,
-      pointY: number,
-      rectangle: RotatedRectangle,
-    ) => {
-      const translatedX = pointX - rectangle.centerX;
-      const translatedY = pointY - rectangle.centerY;
-
-      const cos = Math.cos(-rectangle.angle);
-      const sin = Math.sin(-rectangle.angle);
-
-      const localX = translatedX * cos - translatedY * sin;
-      const localY = translatedX * sin + translatedY * cos;
-
-      return (
-        Math.abs(localX) <= rectangle.shortSide / 2 &&
-        Math.abs(localY) <= rectangle.longSide / 2
-      );
-    };
-
     const onCanvasClick = (event: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -378,9 +296,20 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
         selectedRectangleId = clickedRectangle.id;
         setSelectedRectangleLabel(clickedRectangle.id);
         drawScene();
-        console.log(clickedRectangle.id);
       }
     };
+
+    addCircleToSelectedRef.current = (color) => addCircleToSelectedRectangle(color);
+    clearCirclesRef.current = clearCircles;
+
+    window.boardApi = {
+      addCircleToRectangle,
+      addCircleToSelectedRectangle,
+      clearCircles,
+    };
+
+    drawScene();
+    autoPopulateCirclesFromPlayers();
 
     canvas.addEventListener('click', onCanvasClick);
 
@@ -392,49 +321,12 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
     };
   }, [playerPositions, positions]);
 
-  useEffect(() => {
-    if (!usedColors.includes(selectedColor)) {
-      return;
-    }
-
-    const nextAvailableColor = PLAYER_COLORS.find((color) => !usedColors.includes(color));
-    if (nextAvailableColor) {
-      setSelectedColor(nextAvailableColor);
-    }
-  }, [selectedColor, usedColors]);
-
-  return (
-    <div className="flex w-full flex-1 flex-row justify-around gap-2">
-      <div className='w-fit'>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <select value={selectedColor} onChange={(event) => setSelectedColor(event.target.value as PlayerColor)}>
-            {PLAYER_COLORS.map((color) => (
-              <option key={color} value={color} disabled={usedColors.includes(color)}>
-                {color}
-              </option>
-            ))}
-          </select>
-          <button type="button" onClick={addCircle}>Add Circle</button>
-          <button type="button" onClick={clearCircles}>Clear Circles</button>
-        </div>
-
-        <div>
-          Selected rectangle: {selectedRectangleLabel ?? 'None'}
-        </div>
-
-        <canvas
-          ref={canvasRef}
-          id="game-board"
-          width={800}
-          height={600}
-          className="self-start"
-          style={{ border: '1px solid black', width: 800, height: 600 }}
-        >
-          Your browser does not support the HTML5 canvas element.
-        </canvas>
-      </div>
-    </div>
-  )
-}
-
-export default Board;
+  return {
+    canvasRef,
+    selectedRectangleLabel,
+    usedColors,
+    addCircleToSelectedRectangle: (color: PlayerColor) =>
+      addCircleToSelectedRef.current(color),
+    clearCircles: () => clearCirclesRef.current(),
+  };
+};

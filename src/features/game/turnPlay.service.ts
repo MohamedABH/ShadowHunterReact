@@ -1,9 +1,9 @@
-import { turnAttack } from '../api/Turn/Attack.api';
-import { turnEnd } from '../api/Turn/End.api';
-import { turnMove } from '../api/Turn/Move.api';
-import { turnPlaceAbility } from '../api/Turn/PlaceAbility.api';
-import { turnRoll } from '../api/Turn/Roll.api';
-import type { GameState } from '../types/gameState.type';
+import { turnAttack } from '../../api/Turn/Attack.api';
+import { turnEnd } from '../../api/Turn/End.api';
+import { turnMove } from '../../api/Turn/Move.api';
+import { turnPlaceAbility } from '../../api/Turn/PlaceAbility.api';
+import { turnRoll } from '../../api/Turn/Roll.api';
+import type { GameState } from '../../types/gameState.type';
 
 export type TurnPhase = 'roll' | 'move' | 'place_ability' | 'attack' | 'end';
 

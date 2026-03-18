@@ -2,9 +2,14 @@ import React, { useEffect } from 'react'
 import { getGameState } from '../api/GameState.api';
 import type { GameState } from '../types/gameState.type';
 import { getUsername } from '../utils/auth';
-import { getTurnPhase, phaseLabel, playCurrentTurnPhase } from '../services/turnPlay.service';
-import { normalizeGameState, selectCurrentTurnContext } from '../services/gameState.service';
-import { useGameMercure } from '../hooks/useGameMercure';
+import {
+  getTurnPhase,
+  phaseLabel,
+  playCurrentTurnPhase,
+  normalizeGameState,
+  selectCurrentTurnContext,
+  useGameMercure,
+} from '../features/game';
 
 
 const MyGame: React.FC = () => {

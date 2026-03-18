@@ -1,4 +1,4 @@
-import Message from "./Message"
+import Message from './Message';
 import type { ChatMessage } from '../../types/chat.type';
 
 const Chat = () => {
