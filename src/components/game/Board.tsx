@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import type { BoardApi, BoardProps } from '../../types/board.type';
+import {
+  PLAYER_COLORS,
+  PLAYER_COLOR_INITIALS,
+  PLAYER_COLOR_VALUES,
+  type PlayerColor,
+  isPlayerColor,
+} from '../../types/playerColor.type';
 
 type Point = {
   x: number;
@@ -20,29 +28,8 @@ type CircleMarker = {
   x: number;
   y: number;
   radius: number;
-  color: string;
+  color: PlayerColor;
   rectangleId: number;
-};
-
-type BoardApi = {
-  addCircleToRectangle: (rectangleId: number, color: string) => boolean;
-  addCircleToSelectedRectangle: (color: string) => boolean;
-  clearCircles: () => void;
-};
-
-type BoardPosition = {
-  number: number;
-};
-
-type PlayerPosition = {
-  username: string;
-  color: string;
-  position: number;
-};
-
-type BoardProps = {
-  positions: BoardPosition[];
-  playerPositions: PlayerPosition[];
 };
 
 declare global {
@@ -50,39 +37,6 @@ declare global {
     boardApi?: BoardApi;
   }
 }
-
-const ALLOWED_CIRCLE_COLORS = [
-  'white',
-  'black',
-  'purple',
-  'orange',
-  'green',
-  'blue',
-  'red',
-  'yellow',
-] as const;
-
-const CIRCLE_COLOR_VALUES: Record<(typeof ALLOWED_CIRCLE_COLORS)[number], string> = {
-  white: '#ffffff',
-  black: '#000000',
-  purple: '#7e22ce',
-  orange: '#f97316',
-  green: '#16a34a',
-  blue: '#2563eb',
-  red: '#dc2626',
-  yellow: '#ffea00',
-};
-
-const CIRCLE_COLOR_INITIALS: Record<(typeof ALLOWED_CIRCLE_COLORS)[number], string> = {
-  white: 'W',
-  black: 'K',
-  purple: 'P',
-  orange: 'O',
-  green: 'G',
-  blue: 'B',
-  red: 'R',
-  yellow: 'Y',
-};
 
 const getContrastingTextColor = (hexColor: string) => {
   const sanitized = hexColor.replace('#', '');
@@ -94,14 +48,11 @@ const getContrastingTextColor = (hexColor: string) => {
   return luminance > 160 ? '#111111' : '#f8fafc';
 };
 
-const isAllowedCircleColor = (color: string) =>
-  ALLOWED_CIRCLE_COLORS.includes(color as (typeof ALLOWED_CIRCLE_COLORS)[number]);
-
 const Board = ({ positions, playerPositions }: BoardProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedRectangleLabel, setSelectedRectangleLabel] = useState<number | null>(null);
-  const [selectedColor, setSelectedColor] = useState<(typeof ALLOWED_CIRCLE_COLORS)[number]>('red');
-  const [usedColors, setUsedColors] = useState<string[]>([]);
+  const [selectedColor, setSelectedColor] = useState<PlayerColor>('red');
+  const [usedColors, setUsedColors] = useState<PlayerColor[]>([]);
 
   const addCircle = () => {
     const added = window.boardApi?.addCircleToSelectedRectangle(selectedColor);
@@ -109,7 +60,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       return;
     }
 
-    const nextAvailableColor = ALLOWED_CIRCLE_COLORS.find((color) => !usedColors.includes(color));
+    const nextAvailableColor = PLAYER_COLORS.find((color) => !usedColors.includes(color));
     if (nextAvailableColor) {
       setSelectedColor(nextAvailableColor);
     }
@@ -282,8 +233,8 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       drawRectPairForSide(mainTriangle[2], mainTriangle[0], centroid, nextRectangleIdRef);
 
       for (const circle of circles) {
-        const circleColor = CIRCLE_COLOR_VALUES[circle.color as (typeof ALLOWED_CIRCLE_COLORS)[number]];
-        const circleInitial = CIRCLE_COLOR_INITIALS[circle.color as (typeof ALLOWED_CIRCLE_COLORS)[number]];
+        const circleColor = PLAYER_COLOR_VALUES[circle.color];
+        const circleInitial = PLAYER_COLOR_INITIALS[circle.color];
 
         ctx.beginPath();
         ctx.fillStyle = circleColor;
@@ -297,13 +248,13 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
         ctx.fillText(circleInitial, circle.x, circle.y);
       }
 
-      const uniqueUsedColors = [...new Set(circles.map((circle) => circle.color))];
+      const uniqueUsedColors = [...new Set(circles.map((circle) => circle.color))] as PlayerColor[];
       setUsedColors(uniqueUsedColors);
     };
 
     const addCircleToRectangle = (rectangleId: number, color: string) => {
       const normalizedColor = color.trim().toLowerCase();
-      if (!isAllowedCircleColor(normalizedColor)) {
+      if (!isPlayerColor(normalizedColor)) {
         return false;
       }
 
@@ -446,7 +397,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
       return;
     }
 
-    const nextAvailableColor = ALLOWED_CIRCLE_COLORS.find((color) => !usedColors.includes(color));
+    const nextAvailableColor = PLAYER_COLORS.find((color) => !usedColors.includes(color));
     if (nextAvailableColor) {
       setSelectedColor(nextAvailableColor);
     }
@@ -456,8 +407,8 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
     <div className="flex w-full flex-1 flex-row justify-around gap-2">
       <div className='w-fit'>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select value={selectedColor} onChange={(event) => setSelectedColor(event.target.value as (typeof ALLOWED_CIRCLE_COLORS)[number])}>
-            {ALLOWED_CIRCLE_COLORS.map((color) => (
+          <select value={selectedColor} onChange={(event) => setSelectedColor(event.target.value as PlayerColor)}>
+            {PLAYER_COLORS.map((color) => (
               <option key={color} value={color} disabled={usedColors.includes(color)}>
                 {color}
               </option>

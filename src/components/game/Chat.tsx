@@ -1,8 +1,9 @@
 import Message from "./Message"
+import type { ChatMessage } from '../../types/chat.type';
 
 const Chat = () => {
 
-    const MockMessages = [
+    const MockMessages: ChatMessage[] = [
         {
             id: 1,
             sender: 'Player1',
@@ -26,7 +27,7 @@ const Chat = () => {
     return (
         <div className="flex flex-col border-2">
             <div className="flex-1 overflow-y-auto p-4">
-                {MockMessages.map(message => (
+                {MockMessages.map((message) => (
                     <Message key={message.id} message={message} />
                 ))}
             </div>

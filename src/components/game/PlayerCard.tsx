@@ -1,23 +1,23 @@
-const PlayerCard = ({player}) => {
+import type { Player } from '../../types/gameState.type';
+import { PLAYER_COLOR_VALUES, isPlayerColor } from '../../types/playerColor.type';
 
-    const COLORS = {
-        white: '#ffffff',
-        black: '#000000',
-        purple: '#7e22ce',
-        orange: '#f97316',
-        green: '#16a34a',
-        blue: '#2563eb',
-        red: '#dc2626',
-        yellow: '#ffea00',
-    }
+type PlayerCardProps = {
+    player: Player;
+};
+
+const PlayerCard = ({ player }: PlayerCardProps) => {
+
+    const borderColor = isPlayerColor(player.color)
+        ? PLAYER_COLOR_VALUES[player.color]
+        : '#000000';
 
     return (
-        <div style={{ borderColor: COLORS[player.color] }} className="border-4 border-double p-4 rounded-r-lg">
+        <div style={{ borderColor }} className="border-4 border-double p-4 rounded-r-lg">
             <h3>{player.username}</h3>
             <p>Damage: {player.currentDamage}</p>
             <p>Equipments:</p>
             <ul>
-                {player.equipments.map(equipment => (
+                {player.equipments.map((equipment) => (
                     <li key={equipment.id}>{equipment.name}: {equipment.description}</li>
                 ))}
             </ul>

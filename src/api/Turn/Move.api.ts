@@ -4,7 +4,7 @@ type TurnMovePayload = {
 	positionNumber: number;
 };
 
-export const turnMove = async (gameId: string, payload: TurnMovePayload): Promise<any> => {
+export const turnMove = async (gameId: string, payload: TurnMovePayload): Promise<unknown> => {
 	const response = await axios.post(`/api/game/${gameId}/turn/move`, payload, {
 		withCredentials: true,
 	});

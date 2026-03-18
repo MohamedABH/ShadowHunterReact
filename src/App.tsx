@@ -1,5 +1,5 @@
 import { BrowserRouter } from 'react-router-dom'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from './components/Navbar'
 import AppRoutes from './routes/AppRoutes'
 import { getUsername, isLoggedIn } from './utils/auth'

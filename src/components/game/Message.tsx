@@ -1,4 +1,10 @@
-const Message = ({ message }) => {
+import type { ChatMessage } from '../../types/chat.type';
+
+type MessageProps = {
+    message: ChatMessage;
+};
+
+const Message = ({ message }: MessageProps) => {
     return (
         <div key={message.id} className="mb-2">
             <strong>{message.sender}</strong>: {message.content}
