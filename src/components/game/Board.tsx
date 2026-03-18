@@ -390,7 +390,7 @@ const Board = ({ positions, playerPositions }: BoardProps) => {
         delete window.boardApi;
       }
     };
-  }, []);
+  }, [playerPositions, positions]);
 
   useEffect(() => {
     if (!usedColors.includes(selectedColor)) {
