@@ -304,23 +304,11 @@ export const useBoardCanvas = ({
     };
 
     const syncPlayerCirclesFromPlayers = () => {
-      const validPositions = positions
-        .map((position) => position.number)
-        .filter((positionNumber) => Number.isInteger(positionNumber));
-
-      const validRectangleIds = new Set(
-        validPositions.length > 0 ? validPositions : [1, 2, 3, 4, 5, 6],
-      );
-
       const manualCircles = circles.filter((circle) => circle.source === 'manual');
       const nextPlayerCircles: CircleMarker[] = [];
       const nextPlayerByKey: Record<string, CircleMarker> = {};
 
       for (const player of playerPositions) {
-        if (!validRectangleIds.has(player.position)) {
-          continue;
-        }
-
         if (!isPlayerColor(player.color)) {
           continue;
         }
@@ -369,7 +357,8 @@ export const useBoardCanvas = ({
         nextPlayerByKey[player.username] = playerCircle;
       }
 
-      circlesRef.current = [...manualCircles, ...nextPlayerCircles];
+      circles.length = 0;
+      circles.push(...manualCircles, ...nextPlayerCircles);
       playerCirclesByKeyRef.current = nextPlayerByKey;
     };
 
