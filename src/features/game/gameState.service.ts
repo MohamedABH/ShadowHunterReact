@@ -53,9 +53,10 @@ export const applyTurnPlayedUpdate = (
   }
 
   const incomingPosition = payload.position;
+  const movedPlayerId = payload.playerId ?? previous.currentPlayerId;
 
   const updatedPlayers = previous.players.map((player) =>
-    payload.playerId && incomingPosition && player.id === payload.playerId
+    movedPlayerId && incomingPosition && player.id === movedPlayerId
       ? { ...player, position: incomingPosition.number }
       : player,
   );

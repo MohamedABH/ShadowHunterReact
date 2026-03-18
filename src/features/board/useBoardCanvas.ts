@@ -30,6 +30,8 @@ type CircleMarker = {
   radius: number;
   color: PlayerColor;
   rectangleId: number;
+  source: 'manual' | 'player';
+  playerKey?: string;
 };
 
 type UseBoardCanvasParams = {
@@ -61,6 +63,8 @@ export const useBoardCanvas = ({
 
   const addCircleToSelectedRef = useRef<(color: PlayerColor) => boolean>(() => false);
   const clearCirclesRef = useRef<() => void>(() => {});
+  const circlesRef = useRef<CircleMarker[]>([]);
+  const playerCirclesByKeyRef = useRef<Record<string, CircleMarker>>({});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,7 +85,7 @@ export const useBoardCanvas = ({
       return;
     }
 
-    const circles: CircleMarker[] = [];
+    const circles = circlesRef.current;
     let rectangles: RotatedRectangle[] = [];
     let selectedRectangleId: number | null = null;
 
@@ -245,6 +249,7 @@ export const useBoardCanvas = ({
         radius: CIRCLE_RADIUS,
         color: normalizedColor,
         rectangleId,
+        source: 'manual',
       });
       drawScene();
       return true;
@@ -260,10 +265,45 @@ export const useBoardCanvas = ({
 
     const clearCircles = () => {
       circles.length = 0;
+      playerCirclesByKeyRef.current = {};
       drawScene();
     };
 
-    const autoPopulateCirclesFromPlayers = () => {
+    const tryPlacePlayerCircle = (
+      rectangle: RotatedRectangle,
+      color: PlayerColor,
+      blockedCircles: CircleMarker[],
+    ): CircleMarker | null => {
+      let placedPoint: Point | null = null;
+
+      for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt += 1) {
+        const candidate = randomPointInRectangle(rectangle, CIRCLE_RADIUS);
+        const overlapsExisting = blockedCircles.some((circle) => {
+          const distance = Math.hypot(candidate.x - circle.x, candidate.y - circle.y);
+          return distance < CIRCLE_RADIUS + circle.radius;
+        });
+
+        if (!overlapsExisting) {
+          placedPoint = candidate;
+          break;
+        }
+      }
+
+      if (!placedPoint) {
+        return null;
+      }
+
+      return {
+        x: placedPoint.x,
+        y: placedPoint.y,
+        radius: CIRCLE_RADIUS,
+        color,
+        rectangleId: rectangle.id,
+        source: 'player',
+      };
+    };
+
+    const syncPlayerCirclesFromPlayers = () => {
       const validPositions = positions
         .map((position) => position.number)
         .filter((positionNumber) => Number.isInteger(positionNumber));
@@ -272,13 +312,65 @@ export const useBoardCanvas = ({
         validPositions.length > 0 ? validPositions : [1, 2, 3, 4, 5, 6],
       );
 
+      const manualCircles = circles.filter((circle) => circle.source === 'manual');
+      const nextPlayerCircles: CircleMarker[] = [];
+      const nextPlayerByKey: Record<string, CircleMarker> = {};
+
       for (const player of playerPositions) {
         if (!validRectangleIds.has(player.position)) {
           continue;
         }
 
-        addCircleToRectangle(player.position, player.color);
+        if (!isPlayerColor(player.color)) {
+          continue;
+        }
+
+        const rectangle = rectangles.find((item) => item.id === player.position);
+        if (!rectangle) {
+          continue;
+        }
+
+        const blockedCircles = [...manualCircles, ...nextPlayerCircles];
+        const previousCircle = playerCirclesByKeyRef.current[player.username];
+
+        const canReusePreviousCircle =
+          previousCircle &&
+          previousCircle.rectangleId === player.position &&
+          previousCircle.color === player.color &&
+          isPointInsideRotatedRect(previousCircle.x, previousCircle.y, rectangle) &&
+          !blockedCircles.some((circle) => {
+            const distance = Math.hypot(previousCircle.x - circle.x, previousCircle.y - circle.y);
+            return distance < previousCircle.radius + circle.radius;
+          });
+
+        const playerCircle = canReusePreviousCircle
+          ? {
+              ...previousCircle,
+              source: 'player' as const,
+              playerKey: player.username,
+            }
+          : (() => {
+              const newCircle = tryPlacePlayerCircle(rectangle, player.color, blockedCircles);
+              if (!newCircle) {
+                return null;
+              }
+
+              return {
+                ...newCircle,
+                playerKey: player.username,
+              };
+            })();
+
+        if (!playerCircle) {
+          continue;
+        }
+
+        nextPlayerCircles.push(playerCircle);
+        nextPlayerByKey[player.username] = playerCircle;
       }
+
+      circlesRef.current = [...manualCircles, ...nextPlayerCircles];
+      playerCirclesByKeyRef.current = nextPlayerByKey;
     };
 
     const onCanvasClick = (event: MouseEvent) => {
@@ -309,7 +401,8 @@ export const useBoardCanvas = ({
     };
 
     drawScene();
-    autoPopulateCirclesFromPlayers();
+    syncPlayerCirclesFromPlayers();
+    drawScene();
 
     canvas.addEventListener('click', onCanvasClick);
 

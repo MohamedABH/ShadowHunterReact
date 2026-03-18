@@ -72,6 +72,8 @@ const BoardPage = () => {
                     <Board
                         positions={positions}
                         playerPositions={playerPositions}
+                        gameState={state}
+                        onGameStateRefresh={(nextState) => setState(nextState)}
                     ></Board>
                 </>
             )}
