@@ -6,7 +6,7 @@ import Games from "../pages/Games";
 import GameCreation from "../pages/GameCreation";
 import MyGame from "../pages/MyGame";
 import Logout from "../pages/Logout";
-import Board from "../components/game/Board";
+import BoardPage from "../pages/BoardPage";
 
 type AppRoutesProps = {
 	loggedIn: boolean;
@@ -32,7 +32,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ loggedIn }) => {
 			/>
 			<Route 
 				path="/board"
-				element={<Board />}
+				element={<BoardPage />}
 			/>
 		</Routes>
 	);
