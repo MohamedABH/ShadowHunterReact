@@ -34,6 +34,8 @@ type CircleMarker = {
   playerKey?: string;
 };
 
+type PendingRectangle = Omit<RotatedRectangle, 'id'>;
+
 type UseBoardCanvasParams = {
   positions: BoardPosition[];
   playerPositions: PlayerPosition[];
@@ -87,14 +89,10 @@ export const useBoardCanvas = ({
 
     const circles = circlesRef.current;
     let rectangles: RotatedRectangle[] = [];
+    let pendingRectangles: PendingRectangle[] = [];
     let selectedRectangleId: number | null = null;
 
-    const drawRectPairForSide = (
-      a: Point,
-      b: Point,
-      centroid: Point,
-      nextRectangleIdRef: { value: number },
-    ) => {
+    const drawRectPairForSide = (a: Point, b: Point, centroid: Point) => {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const length = Math.hypot(dx, dy);
@@ -130,34 +128,61 @@ export const useBoardCanvas = ({
       const rect2CenterY = midY + ny * distance - ty * RECT_PAIR_OFFSET;
 
       const angle = Math.atan2(ty, tx);
-      const drawRotatedRect = (centerX: number, centerY: number) => {
-        const rectangleId = nextRectangleIdRef.value;
-        rectangles.push({
-          id: rectangleId,
+      const pushRectangle = (centerX: number, centerY: number) => {
+        pendingRectangles.push({
           centerX,
           centerY,
           shortSide: RECT_SHORT_SIDE,
           longSide: RECT_LONG_SIDE,
           angle,
         });
-        nextRectangleIdRef.value += 1;
-
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(angle);
-        if (selectedRectangleId === rectangleId) {
-          ctx.strokeStyle = '#2563eb';
-          ctx.lineWidth = 3;
-        } else {
-          ctx.strokeStyle = 'black';
-          ctx.lineWidth = 2;
-        }
-        ctx.strokeRect(-RECT_SHORT_SIDE / 2, -RECT_LONG_SIDE / 2, RECT_SHORT_SIDE, RECT_LONG_SIDE);
-        ctx.restore();
       };
 
-      drawRotatedRect(rect1CenterX, rect1CenterY);
-      drawRotatedRect(rect2CenterX, rect2CenterY);
+      pushRectangle(rect1CenterX, rect1CenterY);
+      pushRectangle(rect2CenterX, rect2CenterY);
+    };
+
+    const assignClockwiseRectangleIds = (pendingRectangles: PendingRectangle[], centroid: Point) => {
+      const twoPi = Math.PI * 2;
+      const clockwiseFromTop = (rectangle: PendingRectangle) => {
+        const dx = rectangle.centerX - centroid.x;
+        const dy = rectangle.centerY - centroid.y;
+        const rawAngle = Math.atan2(dx, -dy);
+        return (rawAngle + twoPi) % twoPi;
+      };
+
+      const sorted = [...pendingRectangles].sort(
+        (left, right) => clockwiseFromTop(left) - clockwiseFromTop(right),
+      );
+
+      const startIndex = sorted.length > 1 ? 1 : 0;
+      return sorted.map((_, index) => {
+        const rectangle = sorted[(startIndex + index) % sorted.length];
+        return {
+          id: index + 1,
+          ...rectangle,
+        };
+      });
+    };
+
+    const drawRectangle = (rectangle: RotatedRectangle) => {
+      ctx.save();
+      ctx.translate(rectangle.centerX, rectangle.centerY);
+      ctx.rotate(rectangle.angle);
+      if (selectedRectangleId === rectangle.id) {
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 3;
+      } else {
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+      }
+      ctx.strokeRect(
+        -rectangle.shortSide / 2,
+        -rectangle.longSide / 2,
+        rectangle.shortSide,
+        rectangle.longSide,
+      );
+      ctx.restore();
     };
 
     const drawScene = () => {
@@ -178,11 +203,15 @@ export const useBoardCanvas = ({
         y: (mainTriangle[0].y + mainTriangle[1].y + mainTriangle[2].y) / 3,
       };
 
-      rectangles = [];
-      const nextRectangleIdRef = { value: 1 };
-      drawRectPairForSide(mainTriangle[0], mainTriangle[1], centroid, nextRectangleIdRef);
-      drawRectPairForSide(mainTriangle[1], mainTriangle[2], centroid, nextRectangleIdRef);
-      drawRectPairForSide(mainTriangle[2], mainTriangle[0], centroid, nextRectangleIdRef);
+      pendingRectangles = [];
+      drawRectPairForSide(mainTriangle[0], mainTriangle[1], centroid);
+      drawRectPairForSide(mainTriangle[1], mainTriangle[2], centroid);
+      drawRectPairForSide(mainTriangle[2], mainTriangle[0], centroid);
+      rectangles = assignClockwiseRectangleIds(pendingRectangles, centroid);
+
+      for (const rectangle of rectangles) {
+        drawRectangle(rectangle);
+      }
 
       for (const circle of circles) {
         const circleColor = PLAYER_COLOR_VALUES[circle.color];
